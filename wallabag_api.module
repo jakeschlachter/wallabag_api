@@ -35,10 +35,10 @@ function wallabag_api_test() {
  
   $wallabagApi = new wallabagApi(
           'app.wallabag.it', 
-          '339_5o6e8x71r4sgwkkswc8so088s8gsc484koss0o40wsg0w4go0s',
-          '1xi21dbp613400g84kcgscg8g04wkk480so804g0os8wo00cgs',
-          'WeOwnItTeam',
-          'm.G2KJ7~paA0');
+          'my_key',
+          'my_secret',
+          'my_user',
+          'my_password');
           
   $stuff = $wallabagApi->call('entries', array('page' => 1, 'perPage' => 1));
 }
