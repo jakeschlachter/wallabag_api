@@ -1,0 +1,4 @@
+; $Id:$
+name = Wallabag Api
+description = API integration with Wallabag's REST system
+core = 7.x

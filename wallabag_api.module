@@ -1,0 +1,121 @@
+<?php
+
+/**
+ * Implements hook_permission().
+ */
+function wallabag_api_permission() {
+  return array(   
+    'administer wallabag' => array(
+      'title' => t('Administer Wallabag'),
+      'description' => t('Allows user to access the administration pages for wallabag.'),
+      'restrict access' => TRUE,  
+    ),      
+  );
+
+}
+
+
+/**
+ * Implementation of hook_menu().
+ */
+function wallabag_api_menu() {
+        
+  $items['admin/config/wallabag/test'] =  array(
+    'type' => MENU_CALLBACK,
+    'title' => 'Wallabag Test',
+    'description' => '',
+    'page callback' => 'wallabag_api_test',
+    'access arguments' => array('administer wallabag'),
+  ); 
+  
+  return $items;  
+}
+
+function wallabag_api_test() {
+ 
+  $wallabagApi = new wallabagApi(
+          'app.wallabag.it', 
+          '339_5o6e8x71r4sgwkkswc8so088s8gsc484koss0o40wsg0w4go0s',
+          '1xi21dbp613400g84kcgscg8g04wkk480so804g0os8wo00cgs',
+          'WeOwnItTeam',
+          'm.G2KJ7~paA0');
+          
+  $stuff = $wallabagApi->call('entries', array('page' => 1, 'perPage' => 1));
+}
+
+/**
+ * Simple contructor to grab the access token and call function to access the api
+ */
+class wallabagApi {
+  protected $access_token; 
+  protected $wallabag_url;
+  
+  /**
+   * Constructor.
+   */
+  public function __construct($wallabag_url, $key, $secret, $user, $password) {
+    $this->wallabag_url = $wallabag_url;
+    
+    $params = array(
+      'client_id' => $key,
+      'client_secret' => $secret,
+      'username' => $user,
+      'password' => $password,    
+    );
+    
+    $result = $this->call('login', $params);
+    if (isset($result->access_token)) {
+      $this->access_token = $result->access_token;
+    }    
+    
+  }
+  
+  /*
+   * Returns the access_token
+   */
+  public function get_access_token() {
+    return $this->access_token;
+  }
+
+  /*
+   * calls the wallabag api and returns results in array form
+   *  
+   */
+  public function call($command, $params = array()) {
+
+    $wallabag_base = $this->wallabag_url;
+    $url = '';
+
+    if ($command != 'login') {
+      $token = $this->access_token;
+      $url = "https://$wallabag_base/api/$command.json";
+      $params['access_token'] = $token;
+    }
+    else {
+      $url = "https://$wallabag_base/oauth/v2/token";
+      $params['grant_type'] = 'password';      
+    }
+
+    $param_str = (!empty($params) ? http_build_query($params, '', '&') : null);
+    $ch = curl_init();
+
+    $url .= '?'. $param_str;
+    curl_setopt($ch, CURLOPT_URL, $url);
+    //curl_setopt($ch, CURLOPT_POST, 1);
+    //curl_setopt($ch, CURLOPT_POSTFIELDS, $param_str);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1); 
+    //curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+
+    $response = curl_exec($ch);
+
+    //watchdog('wallabag_call', 'Responce for call to !url with !params : !responce', array('!url' => $url, '!params' => $param_str, '!responce' => '<pre>'. print_r($response, true). '</pre>'));
+
+
+    if ($error = curl_error($ch)) {
+      watchdog('civi_api', '!error', array('!error' => $error), WATCHDOG_ERROR);
+    }
+    curl_close($ch); 
+
+    return json_decode($response);
+  }  
+}
